@@ -1,14 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import confetti from 'canvas-confetti';
 import { 
   Calendar, 
   MapPin, 
   Clock, 
-  Volume2, 
-  VolumeX, 
   Send, 
   Heart, 
   Sparkles, 
@@ -19,8 +17,6 @@ import {
   Music,
   Trash2,
   CalendarCheck,
-  Award,
-  Maximize2
 } from 'lucide-react';
 
 // RSVP interface
@@ -33,7 +29,6 @@ interface RSVPData {
   submittedAt: string;
 }
 
-// Pre-calculated stable heights and durations for audio visualizer to maintain absolute render purity
 const EQUALIZER_BARS = [
   { id: 1, heights: [4, 18, 4], duration: 0.8 },
   { id: 2, heights: [4, 12, 4], duration: 0.95 },
@@ -41,33 +36,38 @@ const EQUALIZER_BARS = [
   { id: 4, heights: [4, 14, 4], duration: 0.85 },
   { id: 5, heights: [4, 10, 4], duration: 0.6 },
   { id: 6, heights: [4, 22, 4], duration: 0.75 },
-  { id: 7, heights: [4, 16, 4], duration: 0.9 },
-  { id: 8, heights: [4, 8, 4], duration: 0.65 },
-  { id: 9, heights: [4, 19, 4], duration: 0.82 },
-  { id: 10, heights: [4, 11, 4], duration: 0.88 },
-  { id: 11, heights: [4, 15, 4], duration: 0.73 },
-  { id: 12, heights: [4, 13, 4], duration: 0.78 },
 ];
 
+function useIsMobile() {
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 768px), (pointer: coarse)');
+    const update = () => setIsMobile(mq.matches);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
+
+  return isMobile;
+}
+
 export default function Home() {
-  // Opening state: 'closed' -> 'opening' -> 'opened'
+  const isMobile = useIsMobile();
   const [openingState, setOpeningState] = useState<'closed' | 'opening' | 'opened'>('closed');
   
-  // Audio state
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const tiltRafRef = useRef<number | null>(null);
 
-  // Parallax Tilt state for the Main Card
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
   const [glare, setGlare] = useState({ x: 50, y: 50, opacity: 0 });
   const cardRef = useRef<HTMLDivElement>(null);
 
-  // Parallax Tilt state for the Envelope Card
   const [envTilt, setEnvTilt] = useState({ x: 0, y: 0 });
   const [envGlare, setEnvGlare] = useState({ x: 50, y: 50, opacity: 0 });
   const envelopeRef = useRef<HTMLDivElement>(null);
 
-  // Countdown State
   const [timeLeft, setTimeLeft] = useState({
     days: 0,
     hours: 0,
@@ -76,15 +76,11 @@ export default function Home() {
     isOver: false
   });
 
-  // Framer Motion scroll parallax values
   const { scrollY } = useScroll();
-  const y1 = useTransform(scrollY, [0, 1500], [0, -180]);
-  const y2 = useTransform(scrollY, [0, 1500], [0, 200]);
-  const y3 = useTransform(scrollY, [0, 1500], [0, -100]);
+  const y1 = useTransform(scrollY, [0, 1500], [0, isMobile ? 0 : -180]);
+  const y2 = useTransform(scrollY, [0, 1500], [0, isMobile ? 0 : 200]);
+  const y3 = useTransform(scrollY, [0, 1500], [0, isMobile ? 0 : -100]);
 
-
-
-  // RSVP Form States
   const [name, setName] = useState('');
   const [guestCount, setGuestCount] = useState(1);
   const [status, setStatus] = useState<'will_attend' | 'cannot_attend' | null>(null);
@@ -95,65 +91,58 @@ export default function Home() {
   const [showGuestList, setShowGuestList] = useState(false);
 
   const audioUrl = '/audio/oh-sevaman-yor.mp3';
-
-  // Target Date: August 13, 2026, 18:00
   const targetDate = useMemo(() => new Date('2026-08-13T18:00:00+05:00'), []);
+  const equalizerBars = isMobile ? EQUALIZER_BARS.slice(0, 4) : EQUALIZER_BARS;
 
-  // Initialize data and countdown
   useEffect(() => {
-    // Audio lazy initialization
-    audioRef.current = new Audio(audioUrl);
-    audioRef.current.loop = true;
-    audioRef.current.volume = 0.4;
+    const audio = new Audio(audioUrl);
+    audio.loop = true;
+    audio.volume = 0.4;
+    audio.preload = 'none';
+    audioRef.current = audio;
 
-    // Load RSVPs from localStorage safely without synchronous render-triggering state updates
     const saved = localStorage.getItem('premium_invitation_rsvps');
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as RSVPData[];
-        setTimeout(() => {
-          setAllRsvps(parsed);
-          if (parsed.length > 0) {
-            setRsvpSaved(parsed[parsed.length - 1]);
-          }
-        }, 0);
+        setAllRsvps(parsed);
+        if (parsed.length > 0) {
+          setRsvpSaved(parsed[parsed.length - 1]);
+        }
       } catch (e) {
         console.error('Error parsing RSVPs', e);
       }
     }
 
-    // Countdown Timer Loop
-    const timer = setInterval(() => {
-      const now = new Date();
-      const difference = targetDate.getTime() - now.getTime();
+    const tick = () => {
+      const now = Date.now();
+      const difference = targetDate.getTime() - now;
 
       if (difference <= 0) {
-        setTimeLeft(prev => ({ ...prev, isOver: true }));
-        clearInterval(timer);
-      } else {
-        const d = Math.floor(difference / (1000 * 60 * 60 * 24));
-        const h = Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const m = Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60));
-        const s = Math.floor((difference % (1000 * 60)) / 1000);
-        setTimeLeft({
-          days: d,
-          hours: h,
-          minutes: m,
-          seconds: s,
-          isOver: false
-        });
+        setTimeLeft(prev => (prev.isOver ? prev : { ...prev, isOver: true }));
+        return;
       }
-    }, 1000);
+
+      setTimeLeft({
+        days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+        hours: Math.floor((difference % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
+        minutes: Math.floor((difference % (1000 * 60 * 60)) / (1000 * 60)),
+        seconds: Math.floor((difference % (1000 * 60)) / 1000),
+        isOver: false
+      });
+    };
+
+    tick();
+    const timer = setInterval(tick, 1000);
 
     return () => {
       clearInterval(timer);
-      if (audioRef.current) {
-        audioRef.current.pause();
-      }
+      if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+      audio.pause();
+      audioRef.current = null;
     };
   }, [targetDate]);
 
-  // Audio trigger
   const toggleAudio = () => {
     if (!audioRef.current) return;
     if (isPlaying) {
@@ -168,116 +157,57 @@ export default function Home() {
     }
   };
 
-  // 3D Parallax Mouse Handlers
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!cardRef.current) return;
+  const handleMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile || !cardRef.current) return;
     const card = cardRef.current;
     const rect = card.getBoundingClientRect();
-    const x = e.clientX - rect.left; // x coordinates within the element
-    const y = e.clientY - rect.top;  // y coordinates within the element
-    
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    
-    // Smooth 3D tilt calculations (capped at 15 degrees)
-    const tiltX = -((y - centerY) / centerY) * 12;
-    const tiltY = ((x - centerX) / centerX) * 12;
-    
-    // Glare calculations
-    const glareX = (x / rect.width) * 100;
-    const glareY = (y / rect.height) * 100;
 
-    setTilt({ x: tiltX, y: tiltY });
-    setGlare({ x: glareX, y: glareY, opacity: 0.35 });
-  };
+    if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+    tiltRafRef.current = requestAnimationFrame(() => {
+      setTilt({
+        x: -((y - centerY) / centerY) * 12,
+        y: ((x - centerX) / centerX) * 12,
+      });
+      setGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 0.35 });
+    });
+  }, [isMobile]);
 
-  const handleMouseLeave = () => {
-    // Reset back to equilibrium smoothly
+  const handleMouseLeave = useCallback(() => {
     setTilt({ x: 0, y: 0 });
     setGlare(prev => ({ ...prev, opacity: 0 }));
-  };
+  }, []);
 
-  // For touch devices, simulate subtle tilt on drag/touch
-  const handleTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (!cardRef.current || e.touches.length === 0) return;
-    const card = cardRef.current;
-    const rect = card.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-      const tiltX = -((y - centerY) / centerY) * 10;
-      const tiltY = ((x - centerX) / centerX) * 10;
-      setTilt({ x: tiltX, y: tiltY });
-      setGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 0.25 });
-    }
-  };
-
-  const handleTouchEnd = () => {
-    setTilt({ x: 0, y: 0 });
-    setGlare(prev => ({ ...prev, opacity: 0 }));
-  };
-
-  // 3D Parallax Handlers for Envelope
-  const handleEnvMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (openingState === 'opening' || !envelopeRef.current) return;
+  const handleEnvMouseMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (isMobile || openingState === 'opening' || !envelopeRef.current) return;
     const card = envelopeRef.current;
     const rect = card.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    
     const centerX = rect.width / 2;
     const centerY = rect.height / 2;
-    
-    // Smooth 3D tilt calculations for envelope (up to 14 degrees)
-    const tiltX = -((y - centerY) / centerY) * 14;
-    const tiltY = ((x - centerX) / centerX) * 14;
-    
-    const glareX = (x / rect.width) * 100;
-    const glareY = (y / rect.height) * 100;
 
-    setEnvTilt({ x: tiltX, y: tiltY });
-    setEnvGlare({ x: glareX, y: glareY, opacity: 0.35 });
-  };
+    if (tiltRafRef.current) cancelAnimationFrame(tiltRafRef.current);
+    tiltRafRef.current = requestAnimationFrame(() => {
+      setEnvTilt({
+        x: -((y - centerY) / centerY) * 14,
+        y: ((x - centerX) / centerX) * 14,
+      });
+      setEnvGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 0.35 });
+    });
+  }, [isMobile, openingState]);
 
-  const handleEnvMouseLeave = () => {
+  const handleEnvMouseLeave = useCallback(() => {
     setEnvTilt({ x: 0, y: 0 });
     setEnvGlare(prev => ({ ...prev, opacity: 0 }));
-  };
+  }, []);
 
-  const handleEnvTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
-    if (openingState === 'opening' || !envelopeRef.current || e.touches.length === 0) return;
-    const card = envelopeRef.current;
-    const rect = card.getBoundingClientRect();
-    const touch = e.touches[0];
-    const x = touch.clientX - rect.left;
-    const y = touch.clientY - rect.top;
-    
-    const centerX = rect.width / 2;
-    const centerY = rect.height / 2;
-    
-    if (x >= 0 && x <= rect.width && y >= 0 && y <= rect.height) {
-      const tiltX = -((y - centerY) / centerY) * 10;
-      const tiltY = ((x - centerX) / centerX) * 10;
-      setEnvTilt({ x: tiltX, y: tiltY });
-      setEnvGlare({ x: (x / rect.width) * 100, y: (y / rect.height) * 100, opacity: 0.25 });
-    }
-  };
-
-  const handleEnvTouchEnd = () => {
-    setEnvTilt({ x: 0, y: 0 });
-    setEnvGlare(prev => ({ ...prev, opacity: 0 }));
-  };
-
-  // Open Envelope Action
   const handleOpenEnvelope = () => {
     setOpeningState('opening');
     
-    // Autoplay music upon interaction if possible
     if (audioRef.current && !isPlaying) {
       audioRef.current.play().then(() => {
         setIsPlaying(true);
@@ -286,18 +216,16 @@ export default function Home() {
       });
     }
 
-    // Trigger canvas confetti spark on click
     confetti({
-      particleCount: 80,
+      particleCount: isMobile ? 24 : 80,
       spread: 70,
       origin: { y: 0.6 },
       colors: ['#D4AF37', '#FFFDF0', '#C0C0C0', '#B38B2D']
     });
 
-    // Letter rises, then continue to main invitation
     setTimeout(() => {
       setOpeningState('opened');
-    }, 3200);
+    }, isMobile ? 2400 : 3200);
   };
 
   // RSVP Submit Action
@@ -324,36 +252,44 @@ export default function Home() {
       setRsvpSaved(newRsvp);
       setIsSubmitting(false);
 
-      // Trigger spectacular gold/champagne celebration confetti
+      // Trigger celebration confetti (lighter on mobile)
       if (status === 'will_attend') {
-        const duration = 3 * 1000;
-        const end = Date.now() + duration;
-
-        const frame = () => {
+        if (isMobile) {
           confetti({
-            particleCount: 5,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0 },
-            colors: ['#D4AF37', '#FFFDF0', '#E5D3B3', '#C0C0C0']
+            particleCount: 30,
+            spread: 60,
+            origin: { y: 0.7 },
+            colors: ['#D4AF37', '#FFFDF0', '#E5D3B3']
           });
-          confetti({
-            particleCount: 5,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1 },
-            colors: ['#D4AF37', '#FFFDF0', '#E5D3B3', '#C0C0C0']
-          });
+        } else {
+          const duration = 3 * 1000;
+          const end = Date.now() + duration;
 
-          if (Date.now() < end) {
-            requestAnimationFrame(frame);
-          }
-        };
-        frame();
+          const frame = () => {
+            confetti({
+              particleCount: 5,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0 },
+              colors: ['#D4AF37', '#FFFDF0', '#E5D3B3', '#C0C0C0']
+            });
+            confetti({
+              particleCount: 5,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1 },
+              colors: ['#D4AF37', '#FFFDF0', '#E5D3B3', '#C0C0C0']
+            });
+
+            if (Date.now() < end) {
+              requestAnimationFrame(frame);
+            }
+          };
+          frame();
+        }
       } else {
-        // Simple subtle glitter for negative RSVPs
         confetti({
-          particleCount: 30,
+          particleCount: isMobile ? 12 : 30,
           spread: 50,
           origin: { y: 0.8 },
           colors: ['#C0C0C0', '#8E9AAF']
@@ -676,6 +612,33 @@ export default function Home() {
         .animate-floating-sparkle-4 {
           animation: floatingSparkle 4.5s ease-in-out infinite 1.5s;
         }
+
+        /* Mobile performance: kill heavy filters & loops */
+        @media (max-width: 768px), (pointer: coarse) {
+          .glow-orb { display: none !important; }
+          .glass,
+          .glass-panel,
+          .glass-dark,
+          .glass-card-premium {
+            backdrop-filter: none !important;
+            -webkit-backdrop-filter: none !important;
+            background: rgba(12, 14, 24, 0.94) !important;
+          }
+          .envelope-gold-emboss { filter: none !important; }
+          .envelope-heart-bokeh,
+          .envelope-golden-dust,
+          .animate-floating-sparkle-1,
+          .animate-floating-sparkle-2,
+          .animate-floating-sparkle-3,
+          .animate-floating-sparkle-4 {
+            display: none !important;
+            animation: none !important;
+          }
+          .animate-shimmer::after { display: none !important; }
+          .vinyl-spin { animation-duration: 10s; }
+          .envelope-gold-lining-shimmer { animation: none !important; }
+          .orb-1, .orb-2, .orb-3 { display: none !important; }
+        }
       `}</style>
 
       {/* BACKGROUND GRAPHICS: Fluid Glowing Auras */}
@@ -686,7 +649,7 @@ export default function Home() {
         <motion.div style={{ y: y3 }} className="orb-3 glow-orb" />
         
         {/* Star Sparkle Canvas */}
-        <SparkleStarsCanvas />
+        <SparkleStarsCanvas enabled={!isMobile} />
       </div>
 
       {/* HEADER: Subtle branding */}
@@ -737,8 +700,8 @@ export default function Home() {
             <motion.div 
               key="envelope-stage"
               initial={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9, y: -40, filter: 'blur(10px)' }}
-              transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+              exit={{ opacity: 0, scale: 0.95, y: -20 }}
+              transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
               className="w-full max-w-lg flex flex-col items-center justify-center py-6 relative"
             >
               
@@ -765,19 +728,20 @@ export default function Home() {
                 ref={envelopeRef}
                 className="perspective-2000 w-full aspect-[4/3] max-w-md relative select-none cursor-pointer group z-10"
                 onClick={openingState === 'closed' ? handleOpenEnvelope : undefined}
-                onMouseMove={handleEnvMouseMove}
-                onMouseLeave={handleEnvMouseLeave}
-                onTouchMove={handleEnvTouchMove}
-                onTouchEnd={handleEnvTouchEnd}
+                onMouseMove={isMobile ? undefined : handleEnvMouseMove}
+                onMouseLeave={isMobile ? undefined : handleEnvMouseLeave}
               >
                 <div 
                   className="w-full h-full preserve-3d relative transition-transform duration-300 ease-out"
                   style={{
                     transform: openingState === 'opening' 
-                      ? 'scale(1.06) rotateX(4deg)' 
-                      : `rotateX(${8 + envTilt.x}deg) rotateY(${envTilt.y}deg)`,
-                    filter: 'drop-shadow(0 30px 60px rgba(0,0,0,0.65)) drop-shadow(0 0 40px rgba(212,175,55,0.08))',
+                      ? 'scale(1.04)' 
+                      : isMobile
+                        ? undefined
+                        : `rotateX(${8 + envTilt.x}deg) rotateY(${envTilt.y}deg)`,
+                    filter: isMobile ? undefined : 'drop-shadow(0 30px 60px rgba(0,0,0,0.65)) drop-shadow(0 0 40px rgba(212,175,55,0.08))',
                     overflow: openingState === 'opening' ? 'visible' : undefined,
+                    boxShadow: isMobile ? '0 20px 40px rgba(0,0,0,0.5)' : undefined,
                   }}
                 >
                   
@@ -994,18 +958,20 @@ export default function Home() {
               <div 
                 id="main-parallax-container"
                 className="w-full max-w-4xl relative flex flex-col items-center mb-16 py-4 px-2"
-                onMouseMove={handleMouseMove}
-                onMouseLeave={handleMouseLeave}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                onMouseMove={isMobile ? undefined : handleMouseMove}
+                onMouseLeave={isMobile ? undefined : handleMouseLeave}
               >
                 {/* Float Card wrapper to apply 3D transform */}
                 <div 
                   ref={cardRef}
                   className="w-full glass-card-premium rounded-3xl p-8 md:p-14 relative flex flex-col items-center shadow-[0_30px_60px_rgba(0,0,0,0.6)] overflow-hidden transition-all duration-500"
                   style={{
-                    transform: `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(1.01, 1.01, 1.01)`,
-                    boxShadow: `0 ${30 + tilt.x * 2}px ${60 + Math.abs(tilt.x) * 3}px rgba(0, 0, 0, 0.6)`
+                    transform: isMobile
+                      ? undefined
+                      : `perspective(1000px) rotateX(${tilt.x}deg) rotateY(${tilt.y}deg) scale3d(1.01, 1.01, 1.01)`,
+                    boxShadow: isMobile
+                      ? '0 20px 40px rgba(0, 0, 0, 0.5)'
+                      : `0 ${30 + tilt.x * 2}px ${60 + Math.abs(tilt.x) * 3}px rgba(0, 0, 0, 0.6)`
                   }}
                 >
                   {/* SPECULAR GLARE EFFECT OVERLAY */}
@@ -1095,7 +1061,7 @@ export default function Home() {
                       <span className="text-[9px] uppercase tracking-widest text-amber-400/60 font-mono mr-1 flex items-center">
                         <Music className="w-3 h-3 mr-1 animate-pulse" /> Live Wave:
                       </span>
-                      {EQUALIZER_BARS.map((bar) => (
+                      {equalizerBars.map((bar) => (
                         <motion.div
                           key={bar.id}
                           className="w-1 bg-gradient-to-t from-amber-600 to-yellow-300 rounded-full"
@@ -1157,7 +1123,7 @@ export default function Home() {
                     </div>
 
                     {/* Infinite floating helper bubble */}
-                    <div className="mt-8 flex items-center space-x-1.5 text-amber-400/60 text-[10px] uppercase tracking-widest animate-bounce">
+                    <div className="mt-8 hidden md:flex items-center space-x-1.5 text-amber-400/60 text-[10px] uppercase tracking-widest animate-bounce">
                       <span>{"Sichqoncha yoki barmog'ingiz bilan 3D egishni sinang"}</span>
                     </div>
 
@@ -1189,7 +1155,7 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
                       viewport={{ once: true, margin: "-50px" }}
                       transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.0 }}
-                      whileHover={{ 
+                      whileHover={isMobile ? undefined : { 
                         scale: 1.05, 
                         rotateX: -10, 
                         rotateY: 5, 
@@ -1211,7 +1177,7 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
                       viewport={{ once: true, margin: "-50px" }}
                       transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.1 }}
-                      whileHover={{ 
+                      whileHover={isMobile ? undefined : { 
                         scale: 1.05, 
                         rotateX: -10, 
                         rotateY: 5, 
@@ -1233,7 +1199,7 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
                       viewport={{ once: true, margin: "-50px" }}
                       transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.2 }}
-                      whileHover={{ 
+                      whileHover={isMobile ? undefined : { 
                         scale: 1.05, 
                         rotateX: -10, 
                         rotateY: 5, 
@@ -1255,7 +1221,7 @@ export default function Home() {
                       whileInView={{ opacity: 1, y: 0, rotateX: 0 }}
                       viewport={{ once: true, margin: "-50px" }}
                       transition={{ type: "spring", stiffness: 100, damping: 15, delay: 0.3 }}
-                      whileHover={{ 
+                      whileHover={isMobile ? undefined : { 
                         scale: 1.05, 
                         rotateX: -10, 
                         rotateY: 5, 
@@ -1558,7 +1524,7 @@ export default function Home() {
                       src="https://maps.google.com/maps?q=Sherdor%20Toyxonasi,%20Yangiyul,%20Uzbekistan&t=&z=15&ie=UTF8&iwloc=&output=embed" 
                       width="100%" 
                       height="100%" 
-                      style={{ border: 0, filter: 'grayscale(0.7) invert(0.9) contrast(1.2)' }} 
+                      style={{ border: 0, filter: isMobile ? undefined : 'grayscale(0.7) invert(0.9) contrast(1.2)' }} 
                       allowFullScreen={false} 
                       loading="lazy" 
                       referrerPolicy="no-referrer"
@@ -1635,23 +1601,29 @@ export default function Home() {
 }
 
 /**
- * High-performance scroll-driven parallax canvas background
- * featuring sparkling stars, drifting gold dust, and elegant gold wedding petals.
+ * Desktop-only particle canvas. Mobile gets a static CSS glow instead.
  */
-function SparkleStarsCanvas() {
+function SparkleStarsCanvas({ enabled }: { enabled: boolean }) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: true });
     if (!ctx) return;
 
-    let animationFrameId: number;
-    let width = (canvas.width = window.innerWidth);
-    let height = (canvas.height = window.innerHeight);
+    let animationFrameId = 0;
+    let running = true;
+    let width = (canvas.width = Math.min(window.innerWidth, 1400));
+    let height = (canvas.height = Math.min(window.innerHeight, 900));
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    canvas.width = width * dpr;
+    canvas.height = height * dpr;
+    canvas.style.width = `${width}px`;
+    canvas.style.height = `${height}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    // Particle schema
     interface Particle {
       x: number;
       y: number;
@@ -1661,161 +1633,83 @@ function SparkleStarsCanvas() {
       angle: number;
       spin: number;
       opacity: number;
-      type: 'star' | 'petal' | 'dust';
-      depth: number; // Parallax speed multiplier
     }
 
     const particles: Particle[] = [];
-    const count = 90; // rich but highly optimized
+    const count = 28;
 
     for (let i = 0; i < count; i++) {
-      const typeRand = Math.random();
-      let type: 'star' | 'petal' | 'dust' = 'star';
-      let depth = Math.random() * 0.4 + 0.1; // background stars default
-
-      if (typeRand > 0.82) {
-        type = 'petal';
-        depth = Math.random() * 0.4 + 0.5; // petals have more scroll action
-      } else if (typeRand > 0.6) {
-        type = 'dust';
-        depth = Math.random() * 0.3 + 0.3;
-      }
-
       particles.push({
         x: Math.random() * width,
         y: Math.random() * height,
-        size: type === 'petal' ? Math.random() * 6 + 4 : type === 'dust' ? Math.random() * 2 + 1 : Math.random() * 1.5 + 0.5,
-        speedY: type === 'petal' ? Math.random() * 0.6 + 0.2 : type === 'dust' ? Math.random() * 0.3 + 0.1 : 0,
-        speedX: Math.random() * 0.4 - 0.2,
+        size: Math.random() * 1.6 + 0.4,
+        speedY: Math.random() * 0.25 + 0.05,
+        speedX: Math.random() * 0.2 - 0.1,
         angle: Math.random() * Math.PI * 2,
-        spin: Math.random() * 0.02 - 0.01,
-        opacity: Math.random() * 0.6 + 0.4,
-        type,
-        depth
+        spin: Math.random() * 0.015 - 0.007,
+        opacity: Math.random() * 0.5 + 0.3,
       });
     }
 
-    // Scroll Tracking variables
-    let targetScrollY = window.scrollY;
-    let currentScrollY = window.scrollY;
-
-    const handleScroll = () => {
-      targetScrollY = window.scrollY;
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
     const draw = () => {
+      if (!running) return;
       ctx.clearRect(0, 0, width, height);
 
-      // Smooth easing of scroll
-      currentScrollY += (targetScrollY - currentScrollY) * 0.08;
+      for (const p of particles) {
+        p.y += p.speedY;
+        p.x += p.speedX;
+        p.angle += p.spin;
+        p.opacity = 0.35 + Math.sin(p.angle) * 0.25;
 
-      particles.forEach((p) => {
-        // Animation update
-        if (p.type === 'petal' || p.type === 'dust') {
-          p.y += p.speedY;
-          p.x += p.speedX + Math.sin(p.angle) * 0.1;
-          p.angle += p.spin;
-        } else {
-          p.angle += p.spin * 0.5;
-          p.opacity = 0.3 + Math.sin(p.angle) * 0.4;
-        }
+        if (p.x < -10) p.x = width + 10;
+        if (p.x > width + 10) p.x = -10;
+        if (p.y > height + 10) p.y = -10;
 
-        // Screen boundary wrapping (X axis)
-        if (p.x < -20) p.x = width + 20;
-        if (p.x > width + 20) p.x = -20;
-
-        // Screen boundary wrapping (Y axis)
-        if (p.y < -20) p.y = height + 20;
-        if (p.y > height + 20) p.y = -20;
-
-        // Calculate scroll parallax position
-        let drawY = (p.y + currentScrollY * p.depth) % height;
-        if (drawY < 0) drawY += height;
-
-        ctx.save();
-        if (p.type === 'petal') {
-          // Draw elegant luxury golden petal
-          ctx.translate(p.x, drawY);
-          ctx.rotate(p.angle);
-          ctx.beginPath();
-          
-          // Royal Leaf/Petal curves
-          ctx.moveTo(0, -p.size);
-          ctx.quadraticCurveTo(p.size * 1.2, -p.size * 1.2, p.size, 0);
-          ctx.quadraticCurveTo(p.size, p.size * 1.2, 0, p.size);
-          ctx.quadraticCurveTo(-p.size, p.size * 1.2, -p.size, 0);
-          ctx.quadraticCurveTo(-p.size * 1.2, -p.size * 1.2, 0, -p.size);
-
-          const grad = ctx.createLinearGradient(-p.size, -p.size, p.size, p.size);
-          grad.addColorStop(0, '#FFF5D0'); // Champagne Gold highlight
-          grad.addColorStop(0.5, '#D4AF37'); // Classic Gold
-          grad.addColorStop(1, '#A07812'); // Rich deep gold
-
-          ctx.fillStyle = grad;
-          ctx.shadowColor = 'rgba(214, 175, 55, 0.4)';
-          ctx.shadowBlur = 6;
-          ctx.fill();
-        } else if (p.type === 'dust') {
-          // Glowing gold/champagne dust particles
-          ctx.beginPath();
-          ctx.arc(p.x, drawY, p.size, 0, Math.PI * 2);
-          ctx.fillStyle = `rgba(214, 175, 55, ${p.opacity * 0.5})`;
-          ctx.shadowColor = 'rgba(214, 175, 55, 0.6)';
-          ctx.shadowBlur = 4;
-          ctx.fill();
-        } else {
-          // Star
-          ctx.translate(p.x, drawY);
-          ctx.rotate(p.angle);
-
-          if (p.size > 1.2) {
-            // Draw majestic 4-point star
-            ctx.beginPath();
-            ctx.moveTo(0, -p.size * 2);
-            ctx.quadraticCurveTo(0, 0, p.size * 2, 0);
-            ctx.quadraticCurveTo(0, 0, 0, p.size * 2);
-            ctx.quadraticCurveTo(0, 0, -p.size * 2, 0);
-            ctx.quadraticCurveTo(0, 0, 0, -p.size * 2);
-            ctx.fillStyle = `rgba(255, 253, 240, ${p.opacity * 0.85})`;
-            ctx.shadowColor = 'rgba(214, 175, 55, 0.4)';
-            ctx.shadowBlur = 5;
-            ctx.fill();
-          } else {
-            // Circle star
-            ctx.beginPath();
-            ctx.arc(0, 0, p.size, 0, Math.PI * 2);
-            ctx.fillStyle = `rgba(255, 253, 240, ${p.opacity * 0.65})`;
-            ctx.fill();
-          }
-        }
-        ctx.restore();
-      });
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 248, 220, ${p.opacity})`;
+        ctx.fill();
+      }
 
       animationFrameId = requestAnimationFrame(draw);
     };
 
     draw();
 
-    // Resize observer
     const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = window.innerWidth;
-      height = canvas.height = window.innerHeight;
+      width = Math.min(window.innerWidth, 1400);
+      height = Math.min(window.innerHeight, 900);
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
     window.addEventListener('resize', handleResize);
 
     return () => {
+      running = false;
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
-      window.removeEventListener('scroll', handleScroll);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) {
+    return (
+      <div
+        className="fixed inset-0 z-0 pointer-events-none opacity-50"
+        style={{
+          background:
+            'radial-gradient(ellipse at 20% 20%, rgba(212,175,55,0.08) 0%, transparent 45%), radial-gradient(ellipse at 80% 70%, rgba(120,40,80,0.1) 0%, transparent 50%)',
+        }}
+      />
+    );
+  }
 
   return (
-    <canvas 
-      ref={canvasRef} 
-      className="fixed inset-0 z-0 pointer-events-none opacity-80" 
+    <canvas
+      ref={canvasRef}
+      className="fixed inset-0 z-0 pointer-events-none opacity-60"
     />
   );
 }
