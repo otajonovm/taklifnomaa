@@ -3,7 +3,7 @@
 import React from 'react';
 import dynamic from 'next/dynamic';
 import { motion } from 'motion/react';
-import { Sparkles, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 
 const WeddingRings3D = dynamic(() => import('./WeddingRings3D'), {
   ssr: false,
@@ -38,12 +38,14 @@ export default function Hero({
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.2 }}
-        className="relative z-20 flex flex-col items-center gap-1"
+        className="relative z-20 w-full max-w-sm px-1 flex flex-col items-center"
       >
-        <Sparkles className="w-4 h-4 text-primary-gold animate-pulse" />
-        <span className="text-[10px] font-sans font-semibold tracking-[0.25em] uppercase text-olive-green">
-          Nikoh Tantanasi Taklifnomasi
-        </span>
+        <p className="old-standard-tt-regular text-[11px] sm:text-xs uppercase tracking-[0.14em] text-stone-700 leading-relaxed text-center">
+          &ldquo;ALLOH ULARNING QALBINI SEVGI ILA BIRLASHTIRDI...&rdquo;
+        </p>
+        <p className="old-standard-tt-regular-italic self-end mt-2 mr-1 text-[9px] sm:text-[10px] uppercase tracking-[0.16em] text-stone-500">
+          ANFOL SURASI 63-OYAT
+        </p>
       </motion.div>
 
       <motion.div
