@@ -1,35 +1,44 @@
 'use client';
 
 import React from 'react';
+import dynamic from 'next/dynamic';
 import { motion } from 'motion/react';
-import { Sparkles } from 'lucide-react';
+import { Sparkles, ChevronRight } from 'lucide-react';
+
+const WeddingRings3D = dynamic(() => import('./WeddingRings3D'), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-full flex items-center justify-center">
+      <div className="w-9 h-9 rounded-full border-2 border-primary-gold/30 border-t-primary-gold animate-spin" />
+    </div>
+  ),
+});
 
 interface HeroProps {
   groomName?: string;
   brideName?: string;
   weddingDate?: string;
+  onNext?: () => void;
 }
 
 export default function Hero({
-  groomName = "Hamidullo",
-  brideName = "Muborakxon",
-  weddingDate = "13.08.2026"
+  groomName = 'Hamidullo',
+  brideName = 'Muborakxon',
+  weddingDate = '13.08.2026',
+  onNext,
 }: HeroProps) {
   return (
     <div className="relative h-full flex flex-col justify-between items-center text-center px-6 py-8 overflow-hidden bg-radial from-stone-50 via-stone-50 to-[#f2eee7]">
-      
-      {/* Decorative Ornaments (Corners) */}
       <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-primary-gold/30 rounded-tl-lg pointer-events-none" />
       <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-primary-gold/30 rounded-tr-lg pointer-events-none" />
       <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-primary-gold/30 rounded-bl-lg pointer-events-none" />
       <div className="absolute bottom-4 right-4 w-12 h-12 border-b-2 border-r-2 border-primary-gold/30 rounded-br-lg pointer-events-none" />
 
-      {/* Decorative Top Banner */}
       <motion.div
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.2 }}
-        className="flex flex-col items-center gap-1"
+        className="relative z-20 flex flex-col items-center gap-1"
       >
         <Sparkles className="w-4 h-4 text-primary-gold animate-pulse" />
         <span className="text-[10px] font-sans font-semibold tracking-[0.25em] uppercase text-olive-green">
@@ -37,86 +46,21 @@ export default function Hero({
         </span>
       </motion.div>
 
-      {/* Intersecting Gold Rings (SVG animated with glowing filters) */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.85 }}
+        initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 1.5, ease: "easeOut" }}
-        className="relative my-4 flex items-center justify-center w-48 h-48 sm:w-56 sm:h-56"
+        transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
+        className="relative z-10 my-1 flex flex-col items-center w-full max-w-[300px] sm:max-w-[340px] pointer-events-auto"
+        onPointerDown={(e) => e.stopPropagation()}
+        onTouchStart={(e) => e.stopPropagation()}
       >
-        {/* Abstract elegant glow backdrops */}
-        <div className="absolute w-32 h-32 bg-primary-gold/10 rounded-full blur-2xl" />
-        
-        <svg className="w-full h-full" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <defs>
-            <linearGradient id="goldGradient" x1="0" y1="0" x2="200" y2="200">
-              <stop offset="0%" stopColor="#dfba7a" />
-              <stop offset="50%" stopColor="#c5a880" />
-              <stop offset="100%" stopColor="#96723b" />
-            </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
-          </defs>
-
-          {/* Left Ring */}
-          <motion.circle
-            cx="85"
-            cy="100"
-            r="42"
-            stroke="url(#goldGradient)"
-            strokeWidth="4"
-            filter="url(#glow)"
-            initial={{ rotate: -15 }}
-            animate={{ rotate: 15 }}
-            transition={{
-              repeat: Infinity,
-              repeatType: "reverse",
-              duration: 6,
-              ease: "easeInOut"
-            }}
-            style={{ transformOrigin: "85px 100px" }}
-          />
-
-          {/* Right Ring */}
-          <motion.circle
-            cx="115"
-            cy="100"
-            r="42"
-            stroke="url(#goldGradient)"
-            strokeWidth="4"
-            filter="url(#glow)"
-            initial={{ rotate: 15 }}
-            animate={{ rotate: -15 }}
-            transition={{
-              repeat: Infinity,
-              repeatType: "reverse",
-              duration: 6,
-              ease: "easeInOut"
-            }}
-            style={{ transformOrigin: "115px 100px" }}
-          />
-
-          {/* Intersecting glowing points/gems */}
-          <circle cx="100" cy="80" r="3" fill="#ffffff" filter="url(#glow)" />
-          <circle cx="100" cy="120" r="3" fill="#ffffff" filter="url(#glow)" />
-        </svg>
-
-        {/* Overlaying floating flower details / sparkles */}
-        <div className="absolute inset-0 flex items-center justify-center">
-          <motion.div
-            animate={{ y: [-3, 3, -3], rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 12, ease: "linear" }}
-            className="text-primary-gold"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-primary-gold/60" />
-          </motion.div>
+        <div className="relative w-full h-[250px] sm:h-[290px]">
+          <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(201,162,39,0.28)_0%,transparent_68%)] blur-2xl pointer-events-none -z-10" />
+          <WeddingRings3D />
         </div>
       </motion.div>
 
-      {/* Primary Couple Branding */}
-      <div className="flex flex-col items-center gap-3">
+      <div className="relative z-20 flex flex-col items-center gap-4 pb-2">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
@@ -126,7 +70,7 @@ export default function Hero({
           <h1 className="text-3xl md:text-4xl font-serif text-stone-800 tracking-wider font-light">
             {groomName}
           </h1>
-          <p className="text-lg font-serif font-semibold italic text-primary-gold my-0.5">&amp;</p>
+          <p className="text-lg font-serif font-semibold italic text-primary-gold my-0.5">{'&'}</p>
           <h1 className="text-3xl md:text-4xl font-serif text-stone-800 tracking-wider font-light">
             {brideName}
           </h1>
@@ -136,14 +80,38 @@ export default function Hero({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.2, delay: 0.8 }}
-          className="flex items-center gap-3 text-stone-400 text-xs font-sans uppercase tracking-[0.2em] mt-1"
+          className="flex items-center gap-3 text-stone-400 text-xs font-sans uppercase tracking-[0.2em]"
         >
-          <span className="h-[1px] w-6 bg-stone-300"></span>
+          <span className="h-[1px] w-6 bg-stone-300" />
           <span>{weddingDate}</span>
-          <span className="h-[1px] w-6 bg-stone-300"></span>
+          <span className="h-[1px] w-6 bg-stone-300" />
         </motion.div>
-      </div>
 
+        {onNext && (
+          <motion.button
+            type="button"
+            onClick={onNext}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.1 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.97 }}
+            className="group relative mt-1 inline-flex items-center gap-2.5 pl-6 pr-4 py-3 rounded-full cursor-pointer overflow-hidden
+              bg-gradient-to-r from-[#b8860b] via-[#c9a227] to-[#d4af37]
+              text-white shadow-[0_10px_28px_rgba(184,134,11,0.35)]
+              border border-white/25
+              focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-gold/60"
+          >
+            <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
+            <span className="relative text-[11px] font-sans font-semibold uppercase tracking-[0.18em]">
+              Davom etish
+            </span>
+            <span className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white/20 border border-white/30 group-hover:bg-white/30 transition-colors">
+              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+            </span>
+          </motion.button>
+        )}
+      </div>
     </div>
   );
 }

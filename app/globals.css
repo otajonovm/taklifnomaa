@@ -9,6 +9,18 @@
   --color-olive-green-dark: #435246;
 }
 
+/* Mobil: qora chiziqlar chiqmasin */
+html,
+body {
+  background-color: #fbfbf9;
+  overscroll-behavior: none;
+}
+
+.safe-area-fill {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
 /* Elegant wedding background pattern & decorative styles */
 .wedding-bg-pattern {
   background-color: #fbfbf9;
@@ -42,4 +54,23 @@
   height: 1px;
   width: 50px;
   background: linear-gradient(to right, transparent, var(--color-primary-gold), transparent);
+}
+
+/* 3D wedding rings container */
+.wedding-rings-3d-root {
+  touch-action: none;
+  background: transparent !important;
+}
+
+.wedding-rings-3d-root canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  background: transparent !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wedding-rings-3d-root canvas {
+    /* Three.js loop still runs; optional pause handled in JS if needed */
+  }
 }

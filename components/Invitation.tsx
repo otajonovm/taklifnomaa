@@ -52,11 +52,43 @@ export default function Invitation() {
   }, []);
 
   useEffect(() => {
+    const audio = new Audio(AUDIO_URL);
+    audio.loop = true;
+    audio.volume = 0.4;
+    audio.preload = 'auto';
+    audioRef.current = audio;
+
+    const unlockedRef = { current: false };
+
+    const tryPlay = () => {
+      if (!audioRef.current || unlockedRef.current) return;
+      audioRef.current
+        .play()
+        .then(() => {
+          unlockedRef.current = true;
+          setIsPlaying(true);
+          window.removeEventListener('pointerdown', unlockOnGesture);
+          window.removeEventListener('touchstart', unlockOnGesture);
+          window.removeEventListener('keydown', unlockOnGesture);
+        })
+        .catch(() => {
+          // Autoplay blocked until user gesture
+        });
+    };
+
+    const unlockOnGesture = () => tryPlay();
+
+    tryPlay();
+    window.addEventListener('pointerdown', unlockOnGesture, { passive: true });
+    window.addEventListener('touchstart', unlockOnGesture, { passive: true });
+    window.addEventListener('keydown', unlockOnGesture);
+
     return () => {
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current = null;
-      }
+      window.removeEventListener('pointerdown', unlockOnGesture);
+      window.removeEventListener('touchstart', unlockOnGesture);
+      window.removeEventListener('keydown', unlockOnGesture);
+      audio.pause();
+      audioRef.current = null;
     };
   }, []);
 
@@ -65,7 +97,6 @@ export default function Invitation() {
       const audio = new Audio(AUDIO_URL);
       audio.loop = true;
       audio.volume = 0.4;
-      audio.preload = 'none';
       audioRef.current = audio;
     }
 
@@ -164,21 +195,21 @@ export default function Invitation() {
   };
 
   return (
-    <div className="min-h-screen bg-[#111412] flex items-center justify-center p-0 sm:p-4 md:p-8 font-sans antialiased relative overflow-hidden">
+    <div className="min-h-dvh h-dvh w-full bg-[#fbfbf9] sm:bg-[#111412] flex items-center justify-center p-0 sm:p-4 md:p-8 font-sans antialiased relative overflow-hidden safe-area-fill">
       
-      {/* Absolute Ambient Background Glows */}
-      <div className="absolute top-10 left-10 w-96 h-96 bg-primary-gold/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-olive-green/5 rounded-full blur-3xl pointer-events-none" />
+      {/* Absolute Ambient Background Glows — faqat desktop frame */}
+      <div className="absolute top-10 left-10 w-96 h-96 bg-primary-gold/5 rounded-full blur-3xl pointer-events-none hidden sm:block" />
+      <div className="absolute bottom-10 right-10 w-96 h-96 bg-olive-green/5 rounded-full blur-3xl pointer-events-none hidden sm:block" />
 
-      {/* Main Container - Framed 9:16 mobile container */}
-      <div className="w-full max-w-md h-dvh sm:h-[850px] sm:rounded-3xl bg-[#fbfbf9] text-stone-800 shadow-2xl overflow-hidden relative flex flex-col border border-primary-gold/15">
+      {/* Main Container — mobil: butun ekran krem; desktop: framed card */}
+      <div className="w-full max-w-md h-full min-h-0 sm:h-[850px] sm:max-h-[min(850px,calc(100dvh-2rem))] sm:rounded-3xl bg-[#fbfbf9] text-stone-800 sm:shadow-2xl overflow-hidden relative flex flex-col border-0 sm:border border-primary-gold/15">
         
         {/* Persistent Luxury Top Navigation Bar */}
-        <div className="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-stone-100 flex flex-col items-center py-3.5 px-4 gap-2">
+        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-100 flex flex-col items-center pt-[max(0.75rem,env(safe-area-inset-top))] pb-3.5 px-4 gap-2">
           <div className="flex items-center gap-1.5">
             <Sparkles className="w-4 h-4 text-primary-gold" />
             <span className="text-[10px] uppercase tracking-[0.25em] font-sans font-bold text-stone-500">
-              Hamidullo &amp; Muborakxon
+              Hamidullo {'&'} Muborakxon
             </span>
           </div>
           
@@ -220,7 +251,7 @@ export default function Invitation() {
               dragConstraints={{ left: 0, right: 0 }}
               dragElastic={0.2}
               onDragEnd={handleDragEnd}
-              className="absolute inset-0 w-full h-full overflow-y-auto no-scrollbar pb-16 touch-pan-y"
+              className="absolute inset-0 w-full h-full overflow-y-auto no-scrollbar pb-[calc(4.5rem+env(safe-area-inset-bottom))] touch-pan-y"
             >
               
               {/* Slide 0: Bosh Sahifa (Hero) */}
@@ -228,7 +259,8 @@ export default function Invitation() {
                 <Hero 
                   groomName="Hamidullo" 
                   brideName="Muborakxon" 
-                  weddingDate="13.08.2026" 
+                  weddingDate="13.08.2026"
+                  onNext={handleNext}
                 />
               )}
 
@@ -436,7 +468,7 @@ export default function Invitation() {
                   {/* Elegant Footer Signature */}
                   <div className="py-8 text-center flex flex-col items-center gap-3 border-t border-stone-200/40">
                     <Sparkles className="w-4 h-4 text-primary-gold" />
-                    <p className="text-sm font-serif font-semibold text-stone-700">Hamidullo &amp; Muborakxon</p>
+                    <p className="text-sm font-serif font-semibold text-stone-700">Hamidullo {'&'} Muborakxon</p>
                     <p className="text-[9px] font-sans text-stone-400 tracking-widest uppercase">Nikoh Tantanasi • 2026</p>
                     <p className="text-[10px] text-stone-400 italic font-sans max-w-xs mt-1">
                       Sizning tashrifingiz biz uchun katta sharafdir!
@@ -451,27 +483,41 @@ export default function Invitation() {
 
         {/* Floating Side Left and Right Navigation Buttons */}
         {currentSlide > 0 && (
-          <button
+          <motion.button
+            type="button"
             onClick={handlePrev}
-            className="absolute left-3 top-1/2 -translate-y-1/2 z-30 p-2.5 bg-white/95 backdrop-blur-md text-primary-gold hover:text-primary-gold-dark rounded-full shadow-lg border border-stone-100 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer hidden sm:flex items-center justify-center"
+            whileHover={{ scale: 1.08, x: -2 }}
+            whileTap={{ scale: 0.95 }}
+            className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-11 h-11 bg-gradient-to-br from-white to-stone-50 text-primary-gold rounded-full shadow-[0_8px_24px_rgba(0,0,0,0.12)] border border-primary-gold/25 cursor-pointer flex items-center justify-center"
             title="Oldingi sahifa"
           >
             <ChevronLeft className="w-5 h-5" />
-          </button>
+          </motion.button>
         )}
 
         {currentSlide < SLIDES.length - 1 && (
-          <button
+          <motion.button
+            type="button"
             onClick={handleNext}
-            className="absolute right-3 top-1/2 -translate-y-1/2 z-30 p-2.5 bg-white/95 backdrop-blur-md text-primary-gold hover:text-primary-gold-dark rounded-full shadow-lg border border-stone-100 hover:scale-110 active:scale-95 transition-all duration-300 cursor-pointer hidden sm:flex items-center justify-center"
+            whileHover={{ scale: 1.08, x: 2 }}
+            whileTap={{ scale: 0.95 }}
+            animate={{
+              boxShadow: [
+                '0 8px 24px rgba(201,162,39,0.25)',
+                '0 8px 32px rgba(201,162,39,0.45)',
+                '0 8px 24px rgba(201,162,39,0.25)',
+              ],
+            }}
+            transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+            className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-11 h-11 bg-gradient-to-br from-[#c9a227] to-[#b8860b] text-white rounded-full border border-white/30 cursor-pointer flex items-center justify-center"
             title="Keyingi sahifa"
           >
             <ChevronRight className="w-5 h-5" />
-          </button>
+          </motion.button>
         )}
 
         {/* Bottom Navigation Indicators (Dots) */}
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 py-2 px-4 rounded-full bg-stone-900/10 backdrop-blur-xs border border-white/20">
+        <div className="absolute bottom-[max(1.25rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 py-2 px-4 rounded-full bg-stone-900/10 backdrop-blur-xs border border-white/20">
           {SLIDES.map((slide) => {
             const isActive = slide.id === currentSlide;
             return (
@@ -496,7 +542,7 @@ export default function Invitation() {
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 1, type: "spring", stiffness: 100 }}
-          className="absolute bottom-4 right-4 z-40 p-3 bg-white/95 backdrop-blur-md rounded-full shadow-lg border border-primary-gold/20 text-primary-gold hover:text-primary-gold-dark hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center"
+          className="absolute bottom-[max(1rem,env(safe-area-inset-bottom))] right-4 z-40 p-3 bg-white/95 backdrop-blur-md rounded-full shadow-lg border border-primary-gold/20 text-primary-gold hover:text-primary-gold-dark hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer flex items-center justify-center"
           title="Musiqani yoqish/o'chirish"
         >
           {isPlaying ? (
