@@ -292,9 +292,6 @@ export default function Invitation() {
                     </div>
 
                     <div className="space-y-2">
-                      <span className="text-2xs uppercase tracking-widest text-stone-400 font-sans font-bold block">
-                        TANTANA BOXCHASI
-                      </span>
                       <h3 className="text-2xl font-serif text-stone-800 font-medium">Sherdor To&apos;yxonasi</h3>
                       <p className="text-sm text-stone-600 font-sans mt-2">
                         Manzil: Yangi yo&apos;l shahri
