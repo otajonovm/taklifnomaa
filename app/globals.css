@@ -1,7 +1,45 @@
 @import "tailwindcss";
-@import "tw-animate-css";
 
 @theme {
-  --font-serif: var(--font-serif);
-  --font-sans: var(--font-sans);
+  --font-serif: var(--font-playfair), serif;
+  --font-sans: var(--font-montserrat), sans-serif;
+  --color-primary-gold: #c5a880;
+  --color-primary-gold-dark: #a88d65;
+  --color-olive-green: #5c6f60;
+  --color-olive-green-dark: #435246;
+}
+
+/* Elegant wedding background pattern & decorative styles */
+.wedding-bg-pattern {
+  background-color: #fbfbf9;
+  background-image: radial-gradient(#c5a880 0.5px, transparent 0.5px), radial-gradient(#c5a880 0.5px, #fbfbf9 0.5px);
+  background-size: 20px 20px;
+  background-position: 0 0, 10px 10px;
+  opacity: 0.15;
+}
+
+/* Scroll snap scrollbar hides and custom stylized typography classes */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Custom elegant ornament separator */
+.gold-ornament {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  color: var(--color-primary-gold);
+}
+
+.gold-ornament::before,
+.gold-ornament::after {
+  content: "";
+  height: 1px;
+  width: 50px;
+  background: linear-gradient(to right, transparent, var(--color-primary-gold), transparent);
 }

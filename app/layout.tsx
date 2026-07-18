@@ -1,30 +1,28 @@
 import type {Metadata} from 'next';
-import { Inter, Cormorant_Garamond } from 'next/font/google';
-import './globals.css';
+import { Playfair_Display, Montserrat } from 'next/font/google';
+import './globals.css'; // Global styles
 
-const inter = Inter({
+const playfair = Playfair_Display({
   subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
+  variable: '--font-playfair',
+  weight: ['400', '500', '600', '700', '800'],
 });
 
-const cormorantGaramond = Cormorant_Garamond({
-  subsets: ['latin', 'cyrillic'],
-  variable: '--font-serif',
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
-  display: 'swap',
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+  weight: ['300', '400', '500', '600', '700', '800'],
 });
 
 export const metadata: Metadata = {
-  title: 'Premium Interaktiv Web-Taklifnoma',
-  description: 'Maxsus va takrorlanmas lahzalarga bagishlangan premium interaktiv taklifnoma',
+  title: 'Nikoh Taklifnomasi | Hamidullo & Muborakxon',
+  description: 'Sizni Hamidullo va Muborakxonning nikoh to\'yi munosabati bilan yozilgan tantanaga taklif etamiz.',
 };
 
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
-    <html lang="uz" className={`${inter.variable} ${cormorantGaramond.variable}`}>
-      <body className="bg-[#0B0F19] text-gray-100 antialiased font-sans" suppressHydrationWarning>
+    <html lang="uz" className={`${playfair.variable} ${montserrat.variable}`}>
+      <body className="antialiased bg-stone-50 text-stone-800" suppressHydrationWarning>
         {children}
       </body>
     </html>
