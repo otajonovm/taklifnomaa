@@ -54,8 +54,8 @@ export default function Hero({
         onPointerDown={(e) => e.stopPropagation()}
         onTouchStart={(e) => e.stopPropagation()}
       >
-        <div className="relative w-full h-[250px] sm:h-[290px]">
-          <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(201,162,39,0.28)_0%,transparent_68%)] blur-2xl pointer-events-none -z-10" />
+        <div className="relative w-full h-[260px] sm:h-[300px]">
+          <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.32)_0%,transparent_70%)] blur-2xl pointer-events-none -z-10" />
           <WeddingRings3D />
         </div>
       </motion.div>
