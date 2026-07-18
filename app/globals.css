@@ -1,8 +1,8 @@
 @import "tailwindcss";
 
 @theme {
-  --font-serif: var(--font-playfair), serif;
-  --font-sans: var(--font-montserrat), sans-serif;
+  --font-serif: var(--font-old-standard-tt), "Old Standard TT", serif;
+  --font-sans: var(--font-old-standard-tt), "Old Standard TT", serif;
   --color-primary-gold: #c5a880;
   --color-primary-gold-dark: #a88d65;
   --color-olive-green: #5c6f60;
@@ -14,6 +14,25 @@ html,
 body {
   background-color: #fbfbf9;
   overscroll-behavior: none;
+  font-family: var(--font-old-standard-tt), "Old Standard TT", serif;
+}
+
+.old-standard-tt-regular {
+  font-family: var(--font-old-standard-tt), "Old Standard TT", serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.old-standard-tt-bold {
+  font-family: var(--font-old-standard-tt), "Old Standard TT", serif;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.old-standard-tt-regular-italic {
+  font-family: var(--font-old-standard-tt), "Old Standard TT", serif;
+  font-weight: 400;
+  font-style: italic;
 }
 
 .safe-area-fill {

@@ -97,7 +97,7 @@ export default function WeddingRings3D() {
     controls.minPolarAngle = 0.4;
     controls.maxPolarAngle = Math.PI - 0.5;
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 1.15;
+    controls.autoRotateSpeed = 1.6;
     controls.rotateSpeed = 0.9;
     controls.zoomSpeed = 0.65;
     controls.target.set(0, 0.08, 0);
@@ -201,23 +201,27 @@ export default function WeddingRings3D() {
     let resumeTimer: ReturnType<typeof setTimeout> | null = null;
     let visible = true;
     let pageVisible = true;
+    let isDragging = false;
 
-    const pauseAutoRotate = () => {
+    const onDragStart = () => {
+      isDragging = true;
       controls.autoRotate = false;
       renderer.domElement.style.cursor = 'grabbing';
       if (resumeTimer) clearTimeout(resumeTimer);
     };
 
-    const scheduleResume = () => {
+    const onDragEnd = () => {
+      isDragging = false;
       renderer.domElement.style.cursor = 'grab';
       if (resumeTimer) clearTimeout(resumeTimer);
+      // Qo‘yib yuborishi bilan yana o‘zi aylana boshlaydi
       resumeTimer = setTimeout(() => {
         controls.autoRotate = true;
-      }, 2200);
+      }, 400);
     };
 
-    controls.addEventListener('start', pauseAutoRotate);
-    controls.addEventListener('end', scheduleResume);
+    controls.addEventListener('start', onDragStart);
+    controls.addEventListener('end', onDragEnd);
 
     const stopBubble = (e: Event) => e.stopPropagation();
     renderer.domElement.addEventListener('pointerdown', stopBubble);
@@ -230,8 +234,7 @@ export default function WeddingRings3D() {
         const next = modeRef.current === 'joined' ? 'separated' : 'joined';
         modeRef.current = next;
         setMode(next);
-        pauseAutoRotate();
-        scheduleResume();
+        controls.autoRotate = true;
       }
       lastTap = now;
     };
@@ -281,6 +284,12 @@ export default function WeddingRings3D() {
       sparkleMat.opacity = 0.45 + Math.sin(t * 4.2) * 0.4;
       sparkle.scale.setScalar(0.85 + Math.sin(t * 4.2) * 0.28);
 
+      // Doimiy aylanish (kamera + model)
+      if (!isDragging) {
+        controls.autoRotate = true;
+        group.rotation.y += 0.006;
+      }
+
       controls.update();
       renderer.render(scene, camera);
     };
@@ -306,8 +315,8 @@ export default function WeddingRings3D() {
       if (resumeTimer) clearTimeout(resumeTimer);
       document.removeEventListener('visibilitychange', onVisibility);
       io.disconnect();
-      controls.removeEventListener('start', pauseAutoRotate);
-      controls.removeEventListener('end', scheduleResume);
+      controls.removeEventListener('start', onDragStart);
+      controls.removeEventListener('end', onDragEnd);
       renderer.domElement.removeEventListener('pointerdown', stopBubble);
       renderer.domElement.removeEventListener('touchstart', stopBubble);
       renderer.domElement.removeEventListener('pointerup', onPointerUp);

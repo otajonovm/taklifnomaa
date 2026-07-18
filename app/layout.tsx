@@ -1,17 +1,13 @@
 import type {Metadata, Viewport} from 'next';
-import { Playfair_Display, Montserrat } from 'next/font/google';
+import { Old_Standard_TT } from 'next/font/google';
 import './globals.css';
 
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  variable: '--font-playfair',
-  weight: ['400', '500', '600', '700', '800'],
-});
-
-const montserrat = Montserrat({
-  subsets: ['latin'],
-  variable: '--font-montserrat',
-  weight: ['300', '400', '500', '600', '700', '800'],
+const oldStandardTT = Old_Standard_TT({
+  subsets: ['latin', 'latin-ext', 'cyrillic'],
+  variable: '--font-old-standard-tt',
+  weight: ['400', '700'],
+  style: ['normal', 'italic'],
+  display: 'swap',
 });
 
 export const metadata: Metadata = {
@@ -31,11 +27,11 @@ export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html
       lang="uz"
-      className={`${playfair.variable} ${montserrat.variable} h-full`}
+      className={`${oldStandardTT.variable} h-full`}
       suppressHydrationWarning
     >
       <body
-        className="antialiased bg-[#fbfbf9] text-stone-800 min-h-dvh h-full overflow-hidden"
+        className={`${oldStandardTT.className} old-standard-tt-regular antialiased bg-[#fbfbf9] text-stone-800 min-h-dvh h-full overflow-hidden`}
         suppressHydrationWarning
       >
         {children}
