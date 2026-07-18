@@ -28,7 +28,7 @@ export default function Hero({
   onNext,
 }: HeroProps) {
   return (
-    <div className="relative h-full flex flex-col justify-between items-center text-center px-6 py-8 overflow-hidden bg-radial from-stone-50 via-stone-50 to-[#f2eee7]">
+    <div className="relative min-h-[calc(100dvh-5rem)] flex flex-col justify-between items-center text-center px-6 py-8 overflow-hidden bg-radial from-stone-50 via-stone-50 to-[#f2eee7]">
       <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-primary-gold/30 rounded-tl-lg pointer-events-none" />
       <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-primary-gold/30 rounded-tr-lg pointer-events-none" />
       <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-primary-gold/30 rounded-bl-lg pointer-events-none" />
@@ -106,10 +106,10 @@ export default function Hero({
           >
             <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/25 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-out" />
             <span className="relative text-[11px] font-sans font-semibold uppercase tracking-[0.18em]">
-              Davom etish
+              Pastga suring
             </span>
             <span className="relative flex items-center justify-center w-8 h-8 rounded-full bg-white/20 border border-white/30 group-hover:bg-white/30 transition-colors">
-              <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
+              <ChevronRight className="w-4 h-4 rotate-90 group-hover:translate-y-0.5 transition-transform" />
             </span>
           </motion.button>
         )}
