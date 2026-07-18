@@ -81,8 +81,9 @@ export default function WeddingRings3D() {
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.22;
-    renderer.domElement.style.touchAction = 'none';
-    renderer.domElement.style.cursor = 'grab';
+    // pan-y: pastga scroll o‘tsin; yon surishni JS ushlaydi
+    renderer.domElement.style.touchAction = phone ? 'pan-y' : 'none';
+    renderer.domElement.style.cursor = phone ? 'grab' : 'grab';
     renderer.domElement.style.width = '100%';
     renderer.domElement.style.height = '100%';
     container.appendChild(renderer.domElement);
@@ -91,12 +92,14 @@ export default function WeddingRings3D() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.09;
     controls.enablePan = false;
-    controls.enableZoom = true;
+    // Desktop: OrbitControls. Telefon: custom gesture (scroll + aylantirish)
+    controls.enabled = !phone;
+    controls.enableZoom = !phone;
     controls.minDistance = 2.8;
     controls.maxDistance = 6.5;
     controls.minPolarAngle = 0.4;
     controls.maxPolarAngle = Math.PI - 0.5;
-    controls.autoRotate = true;
+    controls.autoRotate = !phone;
     controls.autoRotateSpeed = 1.6;
     controls.rotateSpeed = 0.9;
     controls.zoomSpeed = 0.65;
@@ -214,7 +217,6 @@ export default function WeddingRings3D() {
       isDragging = false;
       renderer.domElement.style.cursor = 'grab';
       if (resumeTimer) clearTimeout(resumeTimer);
-      // Qo‘yib yuborishi bilan yana o‘zi aylana boshlaydi
       resumeTimer = setTimeout(() => {
         controls.autoRotate = true;
       }, 400);
@@ -223,12 +225,96 @@ export default function WeddingRings3D() {
     controls.addEventListener('start', onDragStart);
     controls.addEventListener('end', onDragEnd);
 
-    const stopBubble = (e: Event) => e.stopPropagation();
-    renderer.domElement.addEventListener('pointerdown', stopBubble);
-    renderer.domElement.addEventListener('touchstart', stopBubble, { passive: true });
-
+    // Mobil: yon surish = aylantirish, pastga = scroll
+    type GestureMode = 'undecided' | 'scroll' | 'rotate';
+    let gesture: GestureMode = 'undecided';
+    let activePointer: number | null = null;
+    let lastX = 0;
+    let lastY = 0;
     let lastTap = 0;
-    const onPointerUp = () => {
+
+    const finishMobileDrag = () => {
+      if (gesture === 'rotate') {
+        isDragging = false;
+        renderer.domElement.style.cursor = 'grab';
+        renderer.domElement.style.touchAction = 'pan-y';
+        if (resumeTimer) clearTimeout(resumeTimer);
+        resumeTimer = setTimeout(() => {
+          /* auto spin group orqali */
+        }, 350);
+      }
+      gesture = 'undecided';
+      activePointer = null;
+    };
+
+    const onMobilePointerDown = (e: PointerEvent) => {
+      if (e.pointerType === 'mouse') return;
+      activePointer = e.pointerId;
+      lastX = e.clientX;
+      lastY = e.clientY;
+      gesture = 'undecided';
+    };
+
+    const onMobilePointerMove = (e: PointerEvent) => {
+      if (activePointer !== e.pointerId) return;
+      const dx = e.clientX - lastX;
+      const dy = e.clientY - lastY;
+
+      if (gesture === 'undecided') {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        // Asosan pastga/yuqoriga — sahifa scroll
+        if (Math.abs(dy) >= Math.abs(dx) * 1.05) {
+          gesture = 'scroll';
+          return;
+        }
+        // Asosan yon tomonga — uzukni aylantirish
+        gesture = 'rotate';
+        isDragging = true;
+        renderer.domElement.style.cursor = 'grabbing';
+        renderer.domElement.style.touchAction = 'none';
+        try {
+          renderer.domElement.setPointerCapture(e.pointerId);
+        } catch {
+          /* ignore */
+        }
+      }
+
+      if (gesture === 'rotate') {
+        group.rotation.y += dx * 0.012;
+        group.rotation.x = THREE.MathUtils.clamp(
+          group.rotation.x + dy * 0.007,
+          -0.45,
+          0.55
+        );
+        lastX = e.clientX;
+        lastY = e.clientY;
+        if (e.cancelable) e.preventDefault();
+      }
+    };
+
+    const onMobilePointerUp = (e: PointerEvent) => {
+      if (activePointer !== e.pointerId) return;
+
+      // Ikki marta bosish — birlashtirish/ajratish (scroll bo‘lmasa)
+      if (gesture !== 'scroll') {
+        const now = Date.now();
+        if (now - lastTap < 320) {
+          const next = modeRef.current === 'joined' ? 'separated' : 'joined';
+          modeRef.current = next;
+          setMode(next);
+        }
+        lastTap = now;
+      }
+
+      try {
+        renderer.domElement.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+      finishMobileDrag();
+    };
+
+    const onDesktopPointerUp = () => {
       const now = Date.now();
       if (now - lastTap < 320) {
         const next = modeRef.current === 'joined' ? 'separated' : 'joined';
@@ -238,7 +324,17 @@ export default function WeddingRings3D() {
       }
       lastTap = now;
     };
-    renderer.domElement.addEventListener('pointerup', onPointerUp);
+
+    if (phone) {
+      renderer.domElement.addEventListener('pointerdown', onMobilePointerDown);
+      renderer.domElement.addEventListener('pointermove', onMobilePointerMove, {
+        passive: false,
+      });
+      renderer.domElement.addEventListener('pointerup', onMobilePointerUp);
+      renderer.domElement.addEventListener('pointercancel', onMobilePointerUp);
+    } else {
+      renderer.domElement.addEventListener('pointerup', onDesktopPointerUp);
+    }
 
     const onVisibility = () => {
       pageVisible = document.visibilityState === 'visible';
@@ -257,7 +353,6 @@ export default function WeddingRings3D() {
     let disposed = false;
     let lastRender = 0;
     let t = 0;
-    // Telefon: 45 FPS — silliq, lekin ortiqcha emas
     const minFrameMs = phone ? 1000 / 45 : 1000 / 60;
     const ease = 0.08;
 
@@ -284,13 +379,13 @@ export default function WeddingRings3D() {
       sparkleMat.opacity = 0.45 + Math.sin(t * 4.2) * 0.4;
       sparkle.scale.setScalar(0.85 + Math.sin(t * 4.2) * 0.28);
 
-      // Doimiy aylanish (kamera + model)
+      // Doimiy aylanish
       if (!isDragging) {
-        controls.autoRotate = true;
+        if (!phone) controls.autoRotate = true;
         group.rotation.y += 0.006;
       }
 
-      controls.update();
+      if (!phone) controls.update();
       renderer.render(scene, camera);
     };
     frame = requestAnimationFrame(animate);
@@ -306,7 +401,6 @@ export default function WeddingRings3D() {
 
     const ro = new ResizeObserver(onResize);
     ro.observe(container);
-    // Birinchi kadrda o‘lchamni qayta o‘lchash (mobil layout kechikishi)
     requestAnimationFrame(onResize);
 
     return () => {
@@ -317,9 +411,14 @@ export default function WeddingRings3D() {
       io.disconnect();
       controls.removeEventListener('start', onDragStart);
       controls.removeEventListener('end', onDragEnd);
-      renderer.domElement.removeEventListener('pointerdown', stopBubble);
-      renderer.domElement.removeEventListener('touchstart', stopBubble);
-      renderer.domElement.removeEventListener('pointerup', onPointerUp);
+      if (phone) {
+        renderer.domElement.removeEventListener('pointerdown', onMobilePointerDown);
+        renderer.domElement.removeEventListener('pointermove', onMobilePointerMove);
+        renderer.domElement.removeEventListener('pointerup', onMobilePointerUp);
+        renderer.domElement.removeEventListener('pointercancel', onMobilePointerUp);
+      } else {
+        renderer.domElement.removeEventListener('pointerup', onDesktopPointerUp);
+      }
       ro.disconnect();
       controls.dispose();
       ringGeo.dispose();
@@ -343,18 +442,12 @@ export default function WeddingRings3D() {
     <div className="relative z-10 w-full h-full flex flex-col" style={{ isolation: 'isolate' }}>
       <div
         ref={containerRef}
-        className="wedding-rings-3d-root relative flex-1 w-full min-h-[200px] sm:min-h-[220px] overflow-visible bg-transparent touch-none"
-        onPointerDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
+        className="wedding-rings-3d-root relative flex-1 w-full min-h-[180px] sm:min-h-[220px] overflow-visible bg-transparent"
         role="img"
         aria-label="3D nikoh uzuklari"
       />
 
-      <div
-        className="relative z-20 flex items-center justify-center gap-2 mt-1 pointer-events-auto"
-        onPointerDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
-      >
+      <div className="relative z-20 flex items-center justify-center gap-2 mt-1">
         <button
           type="button"
           onClick={() => setRingMode('joined')}
@@ -382,7 +475,7 @@ export default function WeddingRings3D() {
       </div>
 
       <p className="mt-1 text-center text-[9px] uppercase tracking-[0.14em] text-stone-400 font-sans pointer-events-none">
-        Aylantiring · ikki marta bosing
+        Yon tomonga aylantiring · pastga suring
       </p>
     </div>
   );

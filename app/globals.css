@@ -77,7 +77,6 @@ body {
 
 /* 3D wedding rings container */
 .wedding-rings-3d-root {
-  touch-action: none;
   background: transparent !important;
 }
 
@@ -86,6 +85,8 @@ body {
   width: 100% !important;
   height: 100% !important;
   background: transparent !important;
+  /* vertikal scroll o‘tsin */
+  touch-action: pan-y !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

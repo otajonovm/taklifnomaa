@@ -125,7 +125,10 @@ export default function Invitation() {
   };
 
   const scrollToDetails = () => {
-    document.getElementById('event-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const root = scrollRef.current;
+    const target = document.getElementById('event-section');
+    if (!root || !target) return;
+    root.scrollTo({ top: target.offsetTop, behavior: 'smooth' });
   };
 
   return (
@@ -134,9 +137,9 @@ export default function Invitation() {
       <div className="absolute bottom-10 right-10 w-96 h-96 bg-olive-green/5 rounded-full blur-3xl pointer-events-none hidden sm:block" />
 
       <div className="w-full max-w-md h-full min-h-0 sm:h-[850px] sm:max-h-[min(850px,calc(100dvh-2rem))] sm:rounded-3xl bg-[#fbfbf9] text-stone-800 sm:shadow-2xl overflow-hidden relative flex flex-col border-0 sm:border border-primary-gold/15">
-        {/* Sticky header — oddiy, tabsiz */}
-        <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-stone-100 flex items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))] pb-3 px-4">
-          <div className="flex items-center gap-1.5">
+        {/* Header — hero ustida, joy egallamaydi */}
+        <div className="absolute top-0 left-0 right-0 z-40 bg-gradient-to-b from-white/95 via-white/80 to-transparent flex items-center justify-center pt-[max(0.75rem,env(safe-area-inset-top))] pb-4 px-4 pointer-events-none">
+          <div className="flex items-center gap-1.5 pointer-events-auto">
             <Sparkles className="w-4 h-4 text-primary-gold" />
             <span className="text-[10px] uppercase tracking-[0.25em] font-sans font-bold text-stone-500">
               Hamidullo {'&'} Muborakxon
@@ -147,9 +150,12 @@ export default function Invitation() {
         {/* Bitta sahifa — pastga scroll */}
         <div
           ref={scrollRef}
-          className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-y-contain bg-[#fbfbf9] pb-[calc(5rem+env(safe-area-inset-bottom))]"
+          className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-y-contain touch-pan-y bg-[#fbfbf9] pb-[calc(5rem+env(safe-area-inset-bottom))]"
         >
-          <section id="hero-section" className="min-h-[calc(100dvh-4rem)]">
+          <section
+            id="hero-section"
+            className="w-full h-[100dvh] min-h-[100dvh] sm:h-[800px] sm:min-h-[800px] sm:max-h-full"
+          >
             <Hero
               groomName="Hamidullo"
               brideName="Muborakxon"

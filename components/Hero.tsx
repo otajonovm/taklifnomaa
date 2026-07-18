@@ -28,7 +28,11 @@ export default function Hero({
   onNext,
 }: HeroProps) {
   return (
-    <div className="relative min-h-[calc(100dvh-5rem)] flex flex-col justify-between items-center text-center px-6 py-8 overflow-hidden bg-radial from-stone-50 via-stone-50 to-[#f2eee7]">
+    <div
+      className="relative h-full w-full flex flex-col justify-between items-center text-center px-5 overflow-hidden bg-radial from-stone-50 via-stone-50 to-[#f2eee7]
+        pt-[max(3.75rem,calc(env(safe-area-inset-top)+2.75rem))]
+        pb-[max(1.25rem,calc(env(safe-area-inset-bottom)+0.75rem))]"
+    >
       <div className="absolute top-4 left-4 w-12 h-12 border-t-2 border-l-2 border-primary-gold/30 rounded-tl-lg pointer-events-none" />
       <div className="absolute top-4 right-4 w-12 h-12 border-t-2 border-r-2 border-primary-gold/30 rounded-tr-lg pointer-events-none" />
       <div className="absolute bottom-4 left-4 w-12 h-12 border-b-2 border-l-2 border-primary-gold/30 rounded-bl-lg pointer-events-none" />
@@ -38,7 +42,7 @@ export default function Hero({
         initial={{ opacity: 0, y: -15 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 1, delay: 0.2 }}
-        className="relative z-20 w-full max-w-sm px-1 flex flex-col items-center"
+        className="relative z-20 w-full max-w-sm px-1 flex flex-col items-center shrink-0"
       >
         <p className="old-standard-tt-regular text-[11px] sm:text-xs uppercase tracking-[0.14em] text-stone-700 leading-relaxed text-center">
           &ldquo;ALLOH ULARNING QALBINI SEVGI ILA BIRLASHTIRDI...&rdquo;
@@ -52,17 +56,15 @@ export default function Hero({
         initial={{ opacity: 0, scale: 0.92 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 1.05, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 my-1 flex flex-col items-center w-full max-w-[300px] sm:max-w-[340px] pointer-events-auto"
-        onPointerDown={(e) => e.stopPropagation()}
-        onTouchStart={(e) => e.stopPropagation()}
+        className="relative z-10 flex-1 min-h-0 my-2 flex flex-col items-center justify-center w-full max-w-[300px] sm:max-w-[340px]"
       >
-        <div className="relative w-full h-[260px] sm:h-[300px]">
+        <div className="relative w-full h-[min(42vh,280px)] sm:h-[300px] max-h-full">
           <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle,rgba(212,175,55,0.32)_0%,transparent_70%)] blur-2xl pointer-events-none -z-10" />
           <WeddingRings3D />
         </div>
       </motion.div>
 
-      <div className="relative z-20 flex flex-col items-center gap-4 pb-2">
+      <div className="relative z-20 flex flex-col items-center gap-3 sm:gap-4 pb-1 shrink-0">
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
